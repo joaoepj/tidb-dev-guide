@@ -102,6 +102,8 @@ Typically, when you use a debugger, you need to take the following steps:
 2. Prepare data so that the execution will get through the breakpoint, and pause at the specified breakpoint as expected.
 3. Inspect values and follow the execution step by step.
 
+
+
 ### Using delve to debug a test case
 
 If a test case fails, you can also use delve to debug it. Get the name of the test case, go to the corresponding package directory, and then run the following command to start a debugging session that will stop at the entry of the test:
@@ -124,6 +126,51 @@ For example:
 4. Each executor's `Open`, `Next`, and `Close` function marks the volcano-style execution logic.
 
 When you are reading the TiDB source code, you are strongly encouraged to set a breakpoint and use the debugger to trace the execution whenever you are confused or uncertain about the code.
+
+## My anotations
+
+#### In the code
+
+executor/compiler.Compile() call at
+/home/tidb/session/session.go:2168
+
+planner/planner.Optimize() call at
+/home/tidb/executor/compiler.go:116
+
+
+#### Call Stack
+
+executor.(*Compiler).Compile
+server.(*session).ExecuteStmt
+server.(*TiDBContext).ExecuteStmt
+server.(*clientConn).handleStmt
+server.(*clientConn).handleQuery
+server.(*clientConn).dispatch
+server.(*clientConn).Run
+server.(*Server).onConn
+server.(*Server).startNetworkListener
+
+
+
+
+#### Interesting breakpoints:
+
+func (s *Server) startNetworkListener(listener net.Listener, isUnixSocket bool, errChan chan error)
+
+
+func (s *session) Parse(ctx context.Context, sql string) ([]ast.StmtNode, error)
+/home/tidb/session/session.go:1712
+
+func (s *SessionVars) GetParseParams() []parser.ParseParam
+/home/tidb/sessionctx/variable/session.go:1862
+
+func (s *session) ParseSQL(ctx context.Context, sql string, params ...parser.ParseParam) ([]ast.StmtNode, []error, error)
+/home/tidb/session/session.go:1545
+sql: "BEGIN PESSIMISTIC" ?
+
+func Optimize(ctx context.Context, sctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema) (core.Plan, types.NameSlice, error)
+/home/tidb/planner/optimize.go:107
+
 
 ## Using `pprof` for profiling
 
