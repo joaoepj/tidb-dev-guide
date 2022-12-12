@@ -131,23 +131,36 @@ When you are reading the TiDB source code, you are strongly encouraged to set a 
 
 #### In the code
 
-executor/compiler.Compile() call at
+executor/compiler.Compile() call at session/session.go:(*session).ExecuteStmt
+
 /home/tidb/session/session.go:2168
 
 planner/planner.Optimize() call at
+
 /home/tidb/executor/compiler.go:116
 
+executor/adapter.ExecStmt.Exec definition at
+
+/home/tidb/executor/adapter.go:426
 
 #### Call Stack
 
 executor.(*Compiler).Compile
+
 server.(*session).ExecuteStmt
+
 server.(*TiDBContext).ExecuteStmt
+
 server.(*clientConn).handleStmt
+
 server.(*clientConn).handleQuery
+
 server.(*clientConn).dispatch
+
 server.(*clientConn).Run
+
 server.(*Server).onConn
+
 server.(*Server).startNetworkListener
 
 
