@@ -127,7 +127,25 @@ For example:
 
 When you are reading the TiDB source code, you are strongly encouraged to set a breakpoint and use the debugger to trace the execution whenever you are confused or uncertain about the code.
 
-## My anotations
+### My anotations
+
+#### No title
+
+Instead of looking which line function is in the code you can add breakpoints using just functions. See the excerpt of file below you can load during debugging session with the command `source batch.dlv`.
+
+```
+break server.(*Server).startNetworkListener
+break server.(*clientConn).handleQuery
+break executor.(*Compiler).Compile
+```
+
+You can also use the command `transcript output.dlv` to save the output of debugging session to the file output.dlv
+
+The command `print valname` can be used to print variables values when debugger stop at breapoints.
+
+There is also the `watch -rw valname` that stops whennever variable is read or written. But I couldn't figure out why it doesn't work with variables of types context.Context and ast.*. 
+
+Besides `print`. How to show variables of context.Context and ast.* types?
 
 #### In the code
 
@@ -162,7 +180,6 @@ server.(*clientConn).Run
 server.(*Server).onConn
 
 server.(*Server).startNetworkListener
-
 
 
 
