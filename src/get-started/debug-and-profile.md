@@ -131,6 +131,9 @@ When you are reading the TiDB source code, you are strongly encouraged to set a 
 
 #### No title
 
+[About the TiDB Source Code](https://www.pingcap.com/blog/about-the-tidb-source-code/)
+[TiDB Development Guide: ](https://pingcap.github.io/tidb-dev-guide/understand-tidb/introduction.html)
+
 Instead of looking which line function is in the code you can add breakpoints using just functions. See the excerpt of file below you can load during debugging session with the command `source batch.dlv`.
 
 ```
