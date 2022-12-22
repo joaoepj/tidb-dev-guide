@@ -127,11 +127,68 @@ For example:
 
 When you are reading the TiDB source code, you are strongly encouraged to set a breakpoint and use the debugger to trace the execution whenever you are confused or uncertain about the code.
 
-### My anotations
+### Using Delve to track the execution of SELECT statements
+For example, you can use the debugger to track the execution of simple SELECT statements.
 
+Start the TiDB server, attach the debugger to it as instructed in the previous section and connect a client to it.
+
+At debugger, set a breakpoint to the handleQuery function with command `break server.(*clientConn).handleQuery` and continue the execution with `continue`.
+
+Get back to client and input the statement `SELECT 1;`. Note that the prompt don't returns, because execution stopped at the breakpoint.
+
+At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this stage, you should be able to see `stmt` contents and typing `print stmt` should result in something like this:
+<pre><code>
+github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.SelectStmt) *{
+        dmlNode: github.com/pingcap/tidb/parser/ast.dmlNode {
+                stmtNode: (*"github.com/pingcap/tidb/parser/ast.stmtNode")(0xc015666120),},
+        SelectStmtOpts: *github.com/pingcap/tidb/parser/ast.SelectStmtOpts {
+                Distinct: false,
+                SQLBigResult: false,
+                SQLBufferResult: false,
+                SQLCache: true,
+                SQLSmallResult: false,
+                CalcFoundRows: false,
+                StraightJoin: false,
+                Priority: NoPriority (0),
+                <span style="color: grey">TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,</span>
+                ExplicitAll: false,},
+        Distinct: false,
+        <span style="color: grey">From: *github.com/pingcap/tidb/parser/ast.TableRefsClause nil,</span>
+        <span style="color: grey">Where: github.com/pingcap/tidb/parser/ast.ExprNode nil,</span>
+        Fields: *github.com/pingcap/tidb/parser/ast.FieldList {
+                node: (*"github.com/pingcap/tidb/parser/ast.node")(0xc0115ec000),
+                Fields: []*github.com/pingcap/tidb/parser/ast.SelectField len: 1, cap: 1, [
+                        *(*"github.com/pingcap/tidb/parser/ast.SelectField")(0xc01716c120),
+                ],},
+        <span style="color: grey">GroupBy: *github.com/pingcap/tidb/parser/ast.GroupByClause nil,
+        Having: *github.com/pingcap/tidb/parser/ast.HavingClause nil,
+        WindowSpecs: []github.com/pingcap/tidb/parser/ast.WindowSpec len: 0, cap: 0, nil,
+        OrderBy: *github.com/pingcap/tidb/parser/ast.OrderByClause nil,
+        Limit: *github.com/pingcap/tidb/parser/ast.Limit nil,
+        LockInfo: *github.com/pingcap/tidb/parser/ast.SelectLockInfo nil,
+        TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,</span>
+        IsInBraces: false,
+        WithBeforeBraces: false,
+        QueryBlockOffset: 0,
+        <span style="color: grey">SelectIntoOpt: *github.com/pingcap/tidb/parser/ast.SelectIntoOption nil,
+        AfterSetOperator: *github.com/pingcap/tidb/parser/ast.SetOprType nil,</span>
+        Kind: SelectStmtKindSelect (0),
+        <span style="color: grey">Lists: []*github.com/pingcap/tidb/parser/ast.RowExpr len: 0, cap: 0, nil,
+        With: *github.com/pingcap/tidb/parser/ast.WithClause nil,</span>
+        AsViewSchema: false,}
+</code></pre>
+Been acquainted with golang concepts like interfaces and embedding and reading the type definitions of the types referenced in this outputs will be helpful during your tracking sessions. For now, you can just ignore every line terminating in `nil,`.
+
+
+Delve prints interfaces using the syntax _\<interface name\>(\<concrete type\>) \<value\>_. This means that the structure represented by _\<value\>_ has the type _\<concrete type\>_ which implements the interface _\<interface name\>_. In the first line of the output you can see that the variable `stmt` holds a pointer to a ast.StmtSelect struct which implements the ast.StmtNode interface.
+
+Delve prints embedded elements like interfaces and structs. For example, output's second line shows `dmlNode` as a field of the struct with the type struct `ast.dmlNode`. For your turn, this inner struct also embeds another struct of type `stmtNode`.
+
+When delve evaluates a memory address it will automatically return the value of nested struct members, array and slice items and dereference pointers. However to limit the size of the output evaluation will be limited to two levels deep. Beyond two levels only the address of the item will be returned as you can see in the line highlithed in blue.
 #### No title
 
 [About the TiDB Source Code](https://www.pingcap.com/blog/about-the-tidb-source-code/)
+
 [TiDB Development Guide: ](https://pingcap.github.io/tidb-dev-guide/understand-tidb/introduction.html)
 
 Instead of looking which line function is in the code you can add breakpoints using just functions. See the excerpt of file below you can load during debugging session with the command `source batch.dlv`.
