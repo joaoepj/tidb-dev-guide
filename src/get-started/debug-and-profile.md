@@ -134,10 +134,11 @@ Start the TiDB server, attach the debugger to it as instructed in the previous s
 
 At debugger, set a breakpoint to the handleQuery function with command `break server.(*clientConn).handleQuery` and continue the execution with `continue`.
 
-Get back to client and input the statement `SELECT 1;`. Note that the prompt don't returns, because execution stopped at the breakpoint.
+Get back to the client and input the statement `SELECT 1;`. Note that the prompt don't returns indicating that the execution stopped at the breakpoint.
 
-At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this stage, you should be able to see `stmt` contents and typing `print stmt` should result in something like this:
-<pre><code>
+At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this point, you should be able to see `stmt` contents and typing `print stmt` should result in something like this:
+
+```
 github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.SelectStmt) *{
         dmlNode: github.com/pingcap/tidb/parser/ast.dmlNode {
                 stmtNode: (*"github.com/pingcap/tidb/parser/ast.stmtNode")(0xc015666120),},
@@ -150,34 +151,34 @@ github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.
                 CalcFoundRows: false,
                 StraightJoin: false,
                 Priority: NoPriority (0),
-                <span style="color: grey">TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,</span>
+                TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,
                 ExplicitAll: false,},
         Distinct: false,
-        <span style="color: grey">From: *github.com/pingcap/tidb/parser/ast.TableRefsClause nil,</span>
-        <span style="color: grey">Where: github.com/pingcap/tidb/parser/ast.ExprNode nil,</span>
+        From: *github.com/pingcap/tidb/parser/ast.TableRefsClause nil,
+        Where: github.com/pingcap/tidb/parser/ast.ExprNode nil,
         Fields: *github.com/pingcap/tidb/parser/ast.FieldList {
                 node: (*"github.com/pingcap/tidb/parser/ast.node")(0xc0115ec000),
                 Fields: []*github.com/pingcap/tidb/parser/ast.SelectField len: 1, cap: 1, [
                         *(*"github.com/pingcap/tidb/parser/ast.SelectField")(0xc01716c120),
                 ],},
-        <span style="color: grey">GroupBy: *github.com/pingcap/tidb/parser/ast.GroupByClause nil,
+        GroupBy: *github.com/pingcap/tidb/parser/ast.GroupByClause nil,
         Having: *github.com/pingcap/tidb/parser/ast.HavingClause nil,
         WindowSpecs: []github.com/pingcap/tidb/parser/ast.WindowSpec len: 0, cap: 0, nil,
         OrderBy: *github.com/pingcap/tidb/parser/ast.OrderByClause nil,
         Limit: *github.com/pingcap/tidb/parser/ast.Limit nil,
         LockInfo: *github.com/pingcap/tidb/parser/ast.SelectLockInfo nil,
-        TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,</span>
+        TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,
         IsInBraces: false,
         WithBeforeBraces: false,
         QueryBlockOffset: 0,
-        <span style="color: grey">SelectIntoOpt: *github.com/pingcap/tidb/parser/ast.SelectIntoOption nil,
-        AfterSetOperator: *github.com/pingcap/tidb/parser/ast.SetOprType nil,</span>
+        SelectIntoOpt: *github.com/pingcap/tidb/parser/ast.SelectIntoOption nil,
+        AfterSetOperator: *github.com/pingcap/tidb/parser/ast.SetOprType nil,
         Kind: SelectStmtKindSelect (0),
-        <span style="color: grey">Lists: []*github.com/pingcap/tidb/parser/ast.RowExpr len: 0, cap: 0, nil,
-        With: *github.com/pingcap/tidb/parser/ast.WithClause nil,</span>
+        Lists: []*github.com/pingcap/tidb/parser/ast.RowExpr len: 0, cap: 0, nil,
+        With: *github.com/pingcap/tidb/parser/ast.WithClause nil,
         AsViewSchema: false,}
-</code></pre>
-Been acquainted with golang concepts like interfaces and embedding and reading the type definitions of the types referenced in this outputs will be helpful during your tracking sessions. For now, you can just ignore every line terminating in `nil,`.
+```
+Been acquainted with golang concepts like interfaces and embedding, and reading the definitions of the types referenced in the output will be helpful during your tracking sessions. For now, you can just ignore every line terminating in `nil,`.
 
 
 Delve prints interfaces using the syntax _\<interface name\>(\<concrete type\>) \<value\>_. This means that the structure represented by _\<value\>_ has the type _\<concrete type\>_ which implements the interface _\<interface name\>_. In the first line of the output you can see that the variable `stmt` holds a pointer to a ast.StmtSelect struct which implements the ast.StmtNode interface.
