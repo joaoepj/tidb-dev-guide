@@ -134,9 +134,19 @@ Start the TiDB server, attach the debugger to it as instructed in the previous s
 
 At debugger, set a breakpoint to the handleQuery function with command `break server.(*clientConn).handleQuery` and continue the execution with `continue`.
 
-Get back to the client and input the statement `SELECT 1;`. Note that the prompt don't returns indicating that the execution stopped at the breakpoint.
+[`server/conn.go:handleQuery`](https://github.com/pingcap/tidb/blob/release-6.5/server/conn.go#L1877)
 
-At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this point, you should be able to see `stmt` contents and typing `print stmt` should result in something like this:
+Get back to the client and input the statement `SELECT 1;`. Note that the prompt doesn't return indicating that the execution stopped at the breakpoint.
+
+At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this point, you should be able to see `stmt` contents and typing `print stmt` should result in something like the output below.
+
+Been acquainted with golang concepts like interfaces and embedding will be helpful during your tracking sessions. In addition, reading the definition of the types referenced in the output during the sessions also has its value. For now, you can just ignore every line terminating in `nil,`.
+
+Delve prints interfaces using the syntax _\<interface name\>(\<concrete type\>) \<value\>_. This means that the structure represented by _\<value\>_ has the type _\<concrete type\>_ which implements the interface _\<interface name\>_. In the first line of the output you can see that the variable `stmt` holds a pointer to a `StmtSelect struct` which implements the `StmtNode interface`.
+
+Delve prints embedded elements like interfaces and structs. For example, output's second line shows `dmlNode` as a field of the struct with the type struct `ast.dmlNode`. For your turn, this inner struct also embeds another struct of type `stmtNode`.
+
+When delve evaluates a memory address it will automatically return the value of nested struct members, array and slice items and dereference pointers. However to limit the size of the output evaluation will be limited to two levels deep. Beyond two levels only the address of the item will be returned as you can see in the line highlithed in blue.
 
 ```
 github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.SelectStmt) *{
@@ -178,14 +188,9 @@ github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.
         With: *github.com/pingcap/tidb/parser/ast.WithClause nil,
         AsViewSchema: false,}
 ```
-Been acquainted with golang concepts like interfaces and embedding, and reading the definitions of the types referenced in the output will be helpful during your tracking sessions. For now, you can just ignore every line terminating in `nil,`.
 
 
-Delve prints interfaces using the syntax _\<interface name\>(\<concrete type\>) \<value\>_. This means that the structure represented by _\<value\>_ has the type _\<concrete type\>_ which implements the interface _\<interface name\>_. In the first line of the output you can see that the variable `stmt` holds a pointer to a ast.StmtSelect struct which implements the ast.StmtNode interface.
 
-Delve prints embedded elements like interfaces and structs. For example, output's second line shows `dmlNode` as a field of the struct with the type struct `ast.dmlNode`. For your turn, this inner struct also embeds another struct of type `stmtNode`.
-
-When delve evaluates a memory address it will automatically return the value of nested struct members, array and slice items and dereference pointers. However to limit the size of the output evaluation will be limited to two levels deep. Beyond two levels only the address of the item will be returned as you can see in the line highlithed in blue.
 #### No title
 
 [About the TiDB Source Code](https://www.pingcap.com/blog/about-the-tidb-source-code/)
