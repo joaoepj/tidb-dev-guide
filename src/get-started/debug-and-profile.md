@@ -71,7 +71,7 @@ Then retry attaching delve onto the PID, and it should work.
 
 If you've worked with GDB, the delve debugging interface will look familiar to you. It is an interactive dialogue that allows you to interact with the execution of the tidb server attached on. To learn more about delve, you can type help into the dialogue and read the `help` messages.
 
-### Use delve for debugging
+### Setting breakpoints
 
 After attaching delve to the running TiDB server process, you can now set breakpoints. TiDB server will pause execution at the breakpoints you specify.
 
@@ -104,7 +104,7 @@ Typically, when you use a debugger, you need to take the following steps:
 
 
 
-### Using delve to debug a test case
+### Debugging a test case
 
 If a test case fails, you can also use delve to debug it. Get the name of the test case, go to the corresponding package directory, and then run the following command to start a debugging session that will stop at the entry of the test:
 
@@ -127,7 +127,7 @@ For example:
 
 When you are reading the TiDB source code, you are strongly encouraged to set a breakpoint and use the debugger to trace the execution whenever you are confused or uncertain about the code.
 
-### Using Delve to track the execution of SELECT statements
+### Tracking the execution of SELECT statements
 For example, you can use the debugger to track the execution of simple SELECT statements.
 
 Start the TiDB server, attach the debugger to it as instructed in the previous section and connect a client to it.
