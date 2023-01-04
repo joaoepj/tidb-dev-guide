@@ -132,11 +132,15 @@ For example, you can use the debugger to track the execution of simple SELECT st
 
 Start the TiDB server, attach the debugger to it as instructed in the previous section and connect a client to it.
 
+#### Parsing the string
+
 At debugger, set a breakpoint to the handleQuery function with command `break server.(*clientConn).handleQuery` and continue the execution with `continue`.
 
 [`server/conn.go:handleQuery`](https://github.com/pingcap/tidb/blob/release-6.5/server/conn.go#L1877)
 
 Get back to the client and input the statement `SELECT 1;`. Note that the prompt doesn't return indicating that the execution stopped at the breakpoint.
+
+#### Inspecting the AST
 
 At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this point, you should be able to see `stmt` contents and typing `print stmt` should result in something like the output below.
 
@@ -189,7 +193,79 @@ github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.
         AsViewSchema: false,}
 ```
 
+#### Another Reading Session
 
+For each client connection TiDB server calls function (\*clientConn).handleQuery, which calls function Parse inherited from Session interface. Parse returns a set/array/slice of statements. Each statement elements is passed as argument to function (\*clientConn).handleStmt. handleStmt calls (\*TiDBContext).ExecuteStmt (\*session).ExecuteStmt which returns the type sqlexec.RecordSet. It calls (*Compiler).Compile which receives the AST and returns *ExecStmt. ExecStmt is a struct that implements sqlexec.Statement.
+
+Statement and RecordSet interfaces are defined in tidb/util/sqlexec/restricted_sql_executor.go.
+
+type Statement interface {
+	// OriginText gets the origin SQL text.
+	OriginText() string
+
+	// GetTextToLog gets the desensitization SQL text for logging.
+	GetTextToLog() string
+
+	// Exec executes SQL and gets a Recordset.
+	Exec(ctx context.Context) (RecordSet, error)
+
+	// IsPrepared returns whether this statement is prepared statement.
+	IsPrepared() bool
+
+	// IsReadOnly returns if the statement is read only. For example: SelectStmt without lock.
+	IsReadOnly(vars *variable.SessionVars) bool
+
+	// RebuildPlan rebuilds the plan of the statement.
+	RebuildPlan(ctx context.Context) (schemaVersion int64, err error)
+
+	// GetStmtNode returns the stmtNode inside Statement
+	GetStmtNode() ast.StmtNode
+}
+
+// RecordSet is an abstract result set interface to help get data from Plan.
+type RecordSet interface {
+	// Fields gets result fields.
+	Fields() []*ast.ResultField
+
+	// Next reads records into chunk.
+	Next(ctx context.Context, req *chunk.Chunk) error
+
+	// NewChunk create a chunk, if allocator is nil, the default one is used.
+	NewChunk(chunk.Allocator) *chunk.Chunk
+
+	// Close closes the underlying iterator, call Next after Close will
+	// restart the iteration.
+	Close() error
+}
+
+
+
+planner.Optimize
+
+plannercore/preprocess.Preprocess
+
+executor/adapter.(*ExecStmt).IsReadOnly
+
+executor.(*Compiler).Compile
+
+server.(*session).ExecuteStmt
+
+server.(*TiDBContext).ExecuteStmt
+
+server.(*clientConn).handleStmt
+
+server.(*clientConn).handleQuery
+
+server.(*clientConn).dispatch
+
+server.(*clientConn).Run
+
+server.(*Server).onConn
+
+server.(*Server).startNetworkListener
+
+planner/core
+tidb/executor/compiler.(*Compiler).Compile
 
 #### No title
 
