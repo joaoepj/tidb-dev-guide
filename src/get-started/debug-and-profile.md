@@ -71,7 +71,7 @@ Then retry attaching delve onto the PID, and it should work.
 
 If you've worked with GDB, the delve debugging interface will look familiar to you. It is an interactive dialogue that allows you to interact with the execution of the tidb server attached on. To learn more about delve, you can type help into the dialogue and read the `help` messages.
 
-### Use delve for debugging
+### Setting breakpoints
 
 After attaching delve to the running TiDB server process, you can now set breakpoints. TiDB server will pause execution at the breakpoints you specify.
 
@@ -104,7 +104,7 @@ Typically, when you use a debugger, you need to take the following steps:
 
 
 
-### Using delve to debug a test case
+### Debugging a test case
 
 If a test case fails, you can also use delve to debug it. Get the name of the test case, go to the corresponding package directory, and then run the following command to start a debugging session that will stop at the entry of the test:
 
@@ -127,17 +127,32 @@ For example:
 
 When you are reading the TiDB source code, you are strongly encouraged to set a breakpoint and use the debugger to trace the execution whenever you are confused or uncertain about the code.
 
-### Using Delve to track the execution of SELECT statements
+### Tracking the execution of SELECT statements
 For example, you can use the debugger to track the execution of simple SELECT statements.
 
 Start the TiDB server, attach the debugger to it as instructed in the previous section and connect a client to it.
 
+#### Parsing the string
+
 At debugger, set a breakpoint to the handleQuery function with command `break server.(*clientConn).handleQuery` and continue the execution with `continue`.
 
-Get back to client and input the statement `SELECT 1;`. Note that the prompt don't returns, because execution stopped at the breakpoint.
+[`server/conn.go:handleQuery`](https://github.com/pingcap/tidb/blob/release-6.5/server/conn.go#L1877)
 
-At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this stage, you should be able to see `stmt` contents and typing `print stmt` should result in something like this:
-<pre><code>
+Get back to the client and input the statement `SELECT 1;`. Note that the prompt doesn't return indicating that the execution stopped at the breakpoint.
+
+#### Inspecting the AST
+
+At debugger, you should now see some lines of code from handleQuery function. Type `next` and then press `<ENTER>` until the variable `stmt` is instantiated. At this point, you should be able to see `stmt` contents and typing `print stmt` should result in something like the output below.
+
+Been acquainted with golang concepts like interfaces and embedding will be helpful during your tracking sessions. In addition, reading the definition of the types referenced in the output during the sessions also has its value. For now, you can just ignore every line terminating in `nil,`.
+
+Delve prints interfaces using the syntax _\<interface name\>(\<concrete type\>) \<value\>_. This means that the structure represented by _\<value\>_ has the type _\<concrete type\>_ which implements the interface _\<interface name\>_. In the first line of the output you can see that the variable `stmt` holds a pointer to a `StmtSelect struct` which implements the `StmtNode interface`.
+
+Delve prints embedded elements like interfaces and structs. For example, output's second line shows `dmlNode` as a field of the struct with the type struct `ast.dmlNode`. For your turn, this inner struct also embeds another struct of type `stmtNode`.
+
+When delve evaluates a memory address it will automatically return the value of nested struct members, array and slice items and dereference pointers. However to limit the size of the output evaluation will be limited to two levels deep. Beyond two levels only the address of the item will be returned as you can see in the line highlithed in blue.
+
+```
 github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.SelectStmt) *{
         dmlNode: github.com/pingcap/tidb/parser/ast.dmlNode {
                 stmtNode: (*"github.com/pingcap/tidb/parser/ast.stmtNode")(0xc015666120),},
@@ -150,41 +165,108 @@ github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.
                 CalcFoundRows: false,
                 StraightJoin: false,
                 Priority: NoPriority (0),
-                <span style="color: grey">TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,</span>
+                TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,
                 ExplicitAll: false,},
         Distinct: false,
-        <span style="color: grey">From: *github.com/pingcap/tidb/parser/ast.TableRefsClause nil,</span>
-        <span style="color: grey">Where: github.com/pingcap/tidb/parser/ast.ExprNode nil,</span>
+        From: *github.com/pingcap/tidb/parser/ast.TableRefsClause nil,
+        Where: github.com/pingcap/tidb/parser/ast.ExprNode nil,
         Fields: *github.com/pingcap/tidb/parser/ast.FieldList {
                 node: (*"github.com/pingcap/tidb/parser/ast.node")(0xc0115ec000),
                 Fields: []*github.com/pingcap/tidb/parser/ast.SelectField len: 1, cap: 1, [
                         *(*"github.com/pingcap/tidb/parser/ast.SelectField")(0xc01716c120),
                 ],},
-        <span style="color: grey">GroupBy: *github.com/pingcap/tidb/parser/ast.GroupByClause nil,
+        GroupBy: *github.com/pingcap/tidb/parser/ast.GroupByClause nil,
         Having: *github.com/pingcap/tidb/parser/ast.HavingClause nil,
         WindowSpecs: []github.com/pingcap/tidb/parser/ast.WindowSpec len: 0, cap: 0, nil,
         OrderBy: *github.com/pingcap/tidb/parser/ast.OrderByClause nil,
         Limit: *github.com/pingcap/tidb/parser/ast.Limit nil,
         LockInfo: *github.com/pingcap/tidb/parser/ast.SelectLockInfo nil,
-        TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,</span>
+        TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,
         IsInBraces: false,
         WithBeforeBraces: false,
         QueryBlockOffset: 0,
-        <span style="color: grey">SelectIntoOpt: *github.com/pingcap/tidb/parser/ast.SelectIntoOption nil,
-        AfterSetOperator: *github.com/pingcap/tidb/parser/ast.SetOprType nil,</span>
+        SelectIntoOpt: *github.com/pingcap/tidb/parser/ast.SelectIntoOption nil,
+        AfterSetOperator: *github.com/pingcap/tidb/parser/ast.SetOprType nil,
         Kind: SelectStmtKindSelect (0),
-        <span style="color: grey">Lists: []*github.com/pingcap/tidb/parser/ast.RowExpr len: 0, cap: 0, nil,
-        With: *github.com/pingcap/tidb/parser/ast.WithClause nil,</span>
+        Lists: []*github.com/pingcap/tidb/parser/ast.RowExpr len: 0, cap: 0, nil,
+        With: *github.com/pingcap/tidb/parser/ast.WithClause nil,
         AsViewSchema: false,}
-</code></pre>
-Been acquainted with golang concepts like interfaces and embedding and reading the type definitions of the types referenced in this outputs will be helpful during your tracking sessions. For now, you can just ignore every line terminating in `nil,`.
+```
+
+#### Another Reading Session
+
+For each client connection TiDB server calls function (\*clientConn).handleQuery, which calls function Parse inherited from Session interface. Parse returns a set/array/slice of statements. Each statement elements is passed as argument to function (\*clientConn).handleStmt. handleStmt calls (\*TiDBContext).ExecuteStmt (\*session).ExecuteStmt which returns the type sqlexec.RecordSet. It calls (*Compiler).Compile which receives the AST and returns *ExecStmt. ExecStmt is a struct that implements sqlexec.Statement.
+
+Statement and RecordSet interfaces are defined in tidb/util/sqlexec/restricted_sql_executor.go.
+
+type Statement interface {
+	// OriginText gets the origin SQL text.
+	OriginText() string
+
+	// GetTextToLog gets the desensitization SQL text for logging.
+	GetTextToLog() string
+
+	// Exec executes SQL and gets a Recordset.
+	Exec(ctx context.Context) (RecordSet, error)
+
+	// IsPrepared returns whether this statement is prepared statement.
+	IsPrepared() bool
+
+	// IsReadOnly returns if the statement is read only. For example: SelectStmt without lock.
+	IsReadOnly(vars *variable.SessionVars) bool
+
+	// RebuildPlan rebuilds the plan of the statement.
+	RebuildPlan(ctx context.Context) (schemaVersion int64, err error)
+
+	// GetStmtNode returns the stmtNode inside Statement
+	GetStmtNode() ast.StmtNode
+}
+
+// RecordSet is an abstract result set interface to help get data from Plan.
+type RecordSet interface {
+	// Fields gets result fields.
+	Fields() []*ast.ResultField
+
+	// Next reads records into chunk.
+	Next(ctx context.Context, req *chunk.Chunk) error
+
+	// NewChunk create a chunk, if allocator is nil, the default one is used.
+	NewChunk(chunk.Allocator) *chunk.Chunk
+
+	// Close closes the underlying iterator, call Next after Close will
+	// restart the iteration.
+	Close() error
+}
 
 
-Delve prints interfaces using the syntax _\<interface name\>(\<concrete type\>) \<value\>_. This means that the structure represented by _\<value\>_ has the type _\<concrete type\>_ which implements the interface _\<interface name\>_. In the first line of the output you can see that the variable `stmt` holds a pointer to a ast.StmtSelect struct which implements the ast.StmtNode interface.
 
-Delve prints embedded elements like interfaces and structs. For example, output's second line shows `dmlNode` as a field of the struct with the type struct `ast.dmlNode`. For your turn, this inner struct also embeds another struct of type `stmtNode`.
+planner.Optimize
 
-When delve evaluates a memory address it will automatically return the value of nested struct members, array and slice items and dereference pointers. However to limit the size of the output evaluation will be limited to two levels deep. Beyond two levels only the address of the item will be returned as you can see in the line highlithed in blue.
+plannercore/preprocess.Preprocess
+
+executor/adapter.(*ExecStmt).IsReadOnly
+
+executor.(*Compiler).Compile
+
+server.(*session).ExecuteStmt
+
+server.(*TiDBContext).ExecuteStmt
+
+server.(*clientConn).handleStmt
+
+server.(*clientConn).handleQuery
+
+server.(*clientConn).dispatch
+
+server.(*clientConn).Run
+
+server.(*Server).onConn
+
+server.(*Server).startNetworkListener
+
+planner/core
+tidb/executor/compiler.(*Compiler).Compile
+
 #### No title
 
 [About the TiDB Source Code](https://www.pingcap.com/blog/about-the-tidb-source-code/)
