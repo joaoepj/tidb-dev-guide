@@ -195,6 +195,13 @@ github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.
 
 #### Logging complex structures
 
+Start debugging session from here using delve text mode:
+
+```
+break /home/tidb/session/session.go:2170
+condition 1 stmt.Text == "SELECT 1+!"
+```
+
 Defined in exectutor/adapter.go:233
 ```
 // ExecStmt implements the sqlexec.Statement interface, it builds a planner.Plan to an sqlexec.Statement.
@@ -241,6 +248,103 @@ This line of code:
 ```
 logutil.Logger(ctx).Info("var stmt *executor.ExecStmt", zap.Any("stmt", stmt))
 ```
+
+Printing stmt on dlv prompt seems much more pretty, compare with the output below:
+
+```
+*github.com/pingcap/tidb/executor.ExecStmt {
+        GoCtx: context.Context(*context.valueCtx) *{
+                Context: context.Context(*context.valueCtx) ...,
+                key: (unreadable could not resolve interface type),
+                val: interface {}(*github.com/tikv/client-go/v2/util.ExecDetails) ...,},
+        InfoSchema: github.com/pingcap/tidb/infoschema.InfoSchema(*github.com/pingcap/tidb/infoschema.SessionExtendedInfoSchema) *{
+                InfoSchema: github.com/pingcap/tidb/infoschema.InfoSchema(*github.com/pingcap/tidb/infoschema.infoSchema) ...,
+                LocalTemporaryTablesOnce: (*sync.Once)(0xc012151240),
+                LocalTemporaryTables: *github.com/pingcap/tidb/infoschema.SessionTables nil,
+                MdlTables: *github.com/pingcap/tidb/infoschema.SessionTables nil,},
+        Plan: github.com/pingcap/tidb/planner/core.Plan(*github.com/pingcap/tidb/planner/core.PhysicalProjection) *{
+                physicalSchemaProducer: (*"github.com/pingcap/tidb/planner/core.physicalSchemaProducer")(0xc011d7f0a0),
+                Exprs: []github.com/pingcap/tidb/expression.Expression len: 1, cap: 1, [
+                        ...,
+                ],
+                CalculateNoDelay: false,
+                AvoidColumnEvaluator: false,},
+        Text: "SELECT 1+1",
+        StmtNode: github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.SelectStmt) *{
+                dmlNode: (*"github.com/pingcap/tidb/parser/ast.dmlNode")(0xc0120d0ea0),
+                SelectStmtOpts: *(*"github.com/pingcap/tidb/parser/ast.SelectStmtOpts")(0xc0121511a0),
+                Distinct: false,
+                From: *github.com/pingcap/tidb/parser/ast.TableRefsClause nil,
+                Where: github.com/pingcap/tidb/parser/ast.ExprNode nil,
+                Fields: *(*"github.com/pingcap/tidb/parser/ast.FieldList")(0xc0120e2840),
+                GroupBy: *github.com/pingcap/tidb/parser/ast.GroupByClause nil,
+                Having: *github.com/pingcap/tidb/parser/ast.HavingClause nil,
+                WindowSpecs: []github.com/pingcap/tidb/parser/ast.WindowSpec len: 0, cap: 0, nil,
+                OrderBy: *github.com/pingcap/tidb/parser/ast.OrderByClause nil,
+                Limit: *github.com/pingcap/tidb/parser/ast.Limit nil,
+                LockInfo: *github.com/pingcap/tidb/parser/ast.SelectLockInfo nil,
+                TableHints: []*github.com/pingcap/tidb/parser/ast.TableOptimizerHint len: 0, cap: 0, nil,
+                IsInBraces: false,
+                WithBeforeBraces: false,
+                QueryBlockOffset: 1,
+                SelectIntoOpt: *github.com/pingcap/tidb/parser/ast.SelectIntoOption nil,
+                AfterSetOperator: *github.com/pingcap/tidb/parser/ast.SetOprType nil,
+                Kind: SelectStmtKindSelect (0),
+                Lists: []*github.com/pingcap/tidb/parser/ast.RowExpr len: 0, cap: 0, nil,
+                With: *github.com/pingcap/tidb/parser/ast.WithClause nil,
+                AsViewSchema: false,},
+        Ctx: github.com/pingcap/tidb/sessionctx.Context(*github.com/pingcap/tidb/session.session) *{
+                processInfo: (*"sync/atomic.Value")(0xc0113b3400),
+                txn: (*"github.com/pingcap/tidb/session.LazyTxn")(0xc0113b3410),
+                mu: (*"struct { sync.RWMutex; github.com/pingcap/tidb/session.values map[fmt.Stringer]interface {} }")(0xc0113b3538),
+                currentCtx: context.Context(*context.valueCtx) ...,
+                currentPlan: github.com/pingcap/tidb/planner/core.Plan nil,
+                store: github.com/pingcap/tidb/kv.Storage(*github.com/pingcap/tidb/store/mockstore/mockstorage.mockStorage) ...,
+                preparedPlanCache: github.com/pingcap/tidb/sessionctx.PlanCache nil,
+                generalPlanCache: github.com/pingcap/tidb/sessionctx.PlanCache nil,
+                sessionVars: *(*"github.com/pingcap/tidb/sessionctx/variable.SessionVars")(0xc011375800),
+                sessionManager: github.com/pingcap/tidb/util.SessionManager(*github.com/pingcap/tidb/server.Server) ...,
+                statsCollector: *(*"github.com/pingcap/tidb/statistics/handle.SessionStatsCollector")(0xc01138f840),
+                ddlOwnerManager: github.com/pingcap/tidb/owner.Manager(*github.com/pingcap/tidb/owner.mockManager) ...,
+                lockedTables: map[int64]github.com/pingcap/tidb/parser/model.TableLockTpInfo [],
+                client: github.com/pingcap/tidb/kv.Client(*github.com/pingcap/tidb/store/copr.CopClient) ...,
+                mppClient: github.com/pingcap/tidb/kv.MPPClient(*github.com/pingcap/tidb/store/copr.MPPClient) ...,
+                idxUsageCollector: *github.com/pingcap/tidb/statistics/handle.SessionIndexUsageCollector nil,
+                functionUsageMu: (*"struct { sync.RWMutex; github.com/pingcap/tidb/session.builtinFunctionUsage github.com/pingcap/tidb/telemetry.BuiltinFunctionsUsage }")(0xc0113b3608),
+                diskFullOpt: DiskFullOpt_NotAllowedOnFull (0),
+                stmtStats: *(*"github.com/pingcap/tidb/util/topsql/stmtstats.StatementStats")(0xc010ab3938),
+                sessionStatesHandlers: map[github.com/pingcap/tidb/sessionctx/sessionstates.SessionStateType]github.com/pingcap/tidb/sessionctx.SessionStatesHandler [...],
+                advisoryLocks: map[string]*github.com/pingcap/tidb/session.advisoryLock [],
+                extensions: *github.com/pingcap/tidb/extension.SessionExtensions nil,
+                sandBoxMode: false,},
+        LowerPriority: false,
+        isPreparedStmt: false,
+        isSelectForUpdate: false,
+        retryCount: 0,
+        retryStartTime: time.Time(0001-01-01T00:00:00Z){
+                wall: 0,
+                ext: 0,
+                loc: *time.Location nil,},
+        phaseBuildDurations: [2]time.Duration [github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0),github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0)],
+        phaseOpenDurations: [2]time.Duration [github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0),github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0)],
+        phaseNextDurations: [2]time.Duration [github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0),github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0)],
+        phaseLockDurations: [2]time.Duration [github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0),github.com/tikv/pd/client.defaultMaxTSOBatchWaitInterval (0)],
+        OutputNames: []*github.com/pingcap/tidb/types.FieldName len: 1, cap: 1, [
+                *(*"github.com/pingcap/tidb/types.FieldName")(0xc012118e70),
+        ],
+        PsStmt: *github.com/pingcap/tidb/planner/core.PlanCacheStmt nil,
+        Ti: *github.com/pingcap/tidb/executor.TelemetryInfo {
+                UseNonRecursive: false,
+                UseRecursive: false,
+                UseMultiSchemaChange: false,
+                UesExchangePartition: false,
+                UseFlashbackToCluster: false,
+                PartitionTelemetry: *github.com/pingcap/tidb/executor.PartitionTelemetryInfo nil,
+                AccountLockTelemetry: *github.com/pingcap/tidb/executor.AccountLockTelemetryInfo nil,
+                UseIndexMerge: false,},}
+```
+
+
 
 Prints like this on log:
 ```
