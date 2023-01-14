@@ -193,13 +193,118 @@ github.com/pingcap/tidb/parser/ast.StmtNode(*github.com/pingcap/tidb/parser/ast.
         AsViewSchema: false,}
 ```
 
+#### Shedding some light on ASTs
+
+The select field list:
+
+```
+(dlv) p stmtNode.Fields
+*github.com/pingcap/tidb/parser/ast.FieldList {
+        node: github.com/pingcap/tidb/parser/ast.node {
+                utf8Text: "",
+                enc: github.com/pingcap/tidb/parser/charset.Encoding nil,
+                once: *sync.Once nil,
+                text: "",
+                offset: 0,},
+        Fields: []*github.com/pingcap/tidb/parser/ast.SelectField len: 2, cap: 2, [
+                *(*"github.com/pingcap/tidb/parser/ast.SelectField")(0xc0141199e0),
+                *(*"github.com/pingcap/tidb/parser/ast.SelectField")(0xc014119a70),
+        ],}
+```
+
+The first and only field:
+
+```
+(dlv) p stmtNode.Fields.Fields[0]
+*github.com/pingcap/tidb/parser/ast.SelectField {
+        node: github.com/pingcap/tidb/parser/ast.node {
+                utf8Text: "1+1",
+                enc: github.com/pingcap/tidb/parser/charset.Encoding(*github.com/pingcap/tidb/parser/charset.encodingUTF8) ...,
+                once: *(*sync.Once)(0xc012d291a0),
+                text: "1+1",
+                offset: 0,},
+        Offset: 7,
+        WildCard: *github.com/pingcap/tidb/parser/ast.WildCardField nil,
+        Expr: github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/parser/ast.BinaryOperationExpr) *{
+                exprNode: (*"github.com/pingcap/tidb/parser/ast.exprNode")(0xc012df9420),
+                Op: Plus (11),
+                L: github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/types/parser_driver.ValueExpr) ...,
+                R: github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/types/parser_driver.ValueExpr) ...,},
+        AsName: github.com/pingcap/tidb/parser/model.CIStr {O: "", L: ""},
+        Auxiliary: false,
+        AuxiliaryColInAgg: false,
+        AuxiliaryColInOrderBy: false,}
+```
+
+The field is a binary operation expression:
+
+```
+(dlv) p stmtNode.Fields.Fields[0].Expr
+github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/parser/ast.BinaryOperationExpr) *{
+        exprNode: github.com/pingcap/tidb/parser/ast.exprNode {
+                node: (*"github.com/pingcap/tidb/parser/ast.node")(0xc012df9420),
+                Type: (*"github.com/pingcap/tidb/parser/types.FieldType")(0xc012df9460),
+                flag: 0,},
+        Op: Plus (11),
+        L: github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/types/parser_driver.ValueExpr) *{
+                TexprNode: (*"github.com/pingcap/tidb/parser/ast.exprNode")(0xc012bc78c0),
+                Datum: (*"github.com/pingcap/tidb/types.Datum")(0xc012bc7978),
+                projectionOffset: -1,},
+        R: github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/types/parser_driver.ValueExpr) *{
+                TexprNode: (*"github.com/pingcap/tidb/parser/ast.exprNode")(0xc012bc79e0),
+                Datum: (*"github.com/pingcap/tidb/types.Datum")(0xc012bc7a98),
+                projectionOffset: -1,},}
+```
+The left side of the expression:
+
+```
+(dlv) p stmtNode.Fields.Fields[0].Expr.L
+github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/types/parser_driver.ValueExpr) *{
+        TexprNode: github.com/pingcap/tidb/parser/ast.exprNode {
+                node: (*"github.com/pingcap/tidb/parser/ast.node")(0xc012bc78c0),
+                Type: (*"github.com/pingcap/tidb/parser/types.FieldType")(0xc012bc7900),
+                flag: 0,},
+        Datum: github.com/pingcap/tidb/types.Datum {
+                k: 1,
+                decimal: 0,
+                length: 0,
+                i: 1,
+                collation: "",
+                b: []uint8 len: 0, cap: 0, nil,
+                x: interface {} nil,},
+        projectionOffset: -1,}
+```
+
+The binary operator:
+
+```
+(dlv) p stmtNode.Fields.Fields[0].Expr.Op
+Plus (11)
+(dlv) p stmtNode.Fields.Fields[0].Expr.L
+github.com/pingcap/tidb/parser/ast.ExprNode(*github.com/pingcap/tidb/types/parser_driver.ValueExpr) *{
+        TexprNode: github.com/pingcap/tidb/parser/ast.exprNode {
+                node: (*"github.com/pingcap/tidb/parser/ast.node")(0xc012bc78c0),
+                Type: (*"github.com/pingcap/tidb/parser/types.FieldType")(0xc012bc7900),
+                flag: 0,},
+        Datum: github.com/pingcap/tidb/types.Datum {
+                k: 1,
+                decimal: 0,
+                length: 0,
+                i: 1,
+                collation: "",
+                b: []uint8 len: 0, cap: 0, nil,
+                x: interface {} nil,},
+        projectionOffset: -1,}
+```
+
+
 #### Logging complex structures
 
 Start debugging session from here using delve text mode:
 
 ```
-break /home/tidb/session/session.go:2170
-condition 1 stmt.Text == "SELECT 1+!"
+break /home/tidb/session/session.go:2167
+condition 1 stmt.Text == "SELECT 1+1"
 ```
 
 Defined in exectutor/adapter.go:233
